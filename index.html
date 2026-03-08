@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Обратный таймер для Genially</title>
+<style>
+  body { background: transparent; font-family: Arial, sans-serif; text-align: center; }
+  #timerContainer { position: relative; width: 300px; height: 100px; margin: 20px auto; }
+  canvas { border-radius: 10px; box-shadow: 0 0 20px #0ff, 0 0 40px #0ff, 0 0 60px #0ff; background-color: rgba(0,0,0,0); }
+  #timeText { margin-top: 10px; font-size: 24px; color: #0ff; }
+  #controls { margin-top: 15px; }
+  input[type=number], input[type=color], input[type=text], input[type=file] { margin: 5px; }
+  button { margin: 5px; padding: 5px 10px; }
+</style>
+</head>
+<body>
+
+<div id="timerEditor">
+  <div id="settings">
+    <label>Минуты: <input type="number" id="minutes" value="1" min="0"></label>
+    <label>Секунды: <input type="number" id="seconds" value="30" min="0" max="59"></label><br>
+    <label>Цвет таймера: <input type="color" id="timerColor" value="#0ff"></label>
+    <label>Шрифт цифр: <input type="text" id="fontFamily" value="Arial"></label>
+    <label>Размер шрифта: <input type="number" id="fontSize" value="24"></label><br>
+    <label>Изображение таймера (фон): <input type="file" id="timerImage" accept="image/*"></label>
+    <label>Аудио при завершении: <input type="file" id="endAudio" accept="audio/*"></label>
+  </div>
+
+  <div id="timerContainer">
+    <canvas id="timerCanvas" width="300" height="100"></canvas>
+  </div>
+  <div id="timeText"></div>
+
+  <div id="controls">
+    <button id="startBtn">Запустить</button>
+    <button id="stopBtn">Остановить</button>
+    <button id="getHtmlBtn">Получить ссылку HTML для Genially</button>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('timerCanvas');
+const ctx = canvas.getContext('2d');
+const timeText = document.getElementById('timeText');
+let timerInterval;
+let totalSeconds = parseInt(document.getElementById('minutes').value)*60 + parseInt(document.getElementById('seconds').value);
+
+function drawTimer(progress) {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const color = document.getElementById('timerColor').value;
+
+  // Фон из изображения
+  const imgInput = document.getElementById('timerImage').files[0];
+  if(imgInput){
+    const img = new Image();
+    img.onload = () => {
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = color;
+      ctx.fillRect(0, 0, canvas.width * progress, canvas.height);
+    };
+    img.src = URL.createObjectURL(imgInput);
+  } else {
+    ctx.fillStyle = color;
+    ctx.fillRect(0, 0, canvas.width * progress, canvas.height);
+  }
+
+  // Текст с цифрами под прямоугольником
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  timeText.style.fontFamily = document.getElementById('fontFamily').value;
+  timeText.style.fontSize = document.getElementById('fontSize').value + 'px';
+  timeText.innerText = `${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')}`;
+}
+
+function startTimer() {
+  clearInterval(timerInterval);
+  totalSeconds = parseInt(document.getElementById('minutes').value)*60 + parseInt(document.getElementById('seconds').value);
+  const initialSeconds = totalSeconds;
+  timerInterval = setInterval(() => {
+    if(totalSeconds <= 0){
+      clearInterval(timerInterval);
+      const audioFile = document.getElementById('endAudio').files[0];
+      if(audioFile){
+        const audio = new Audio(URL.createObjectURL(audioFile));
+        audio.play();
+      }
+    } else {
+      totalSeconds--;
+      drawTimer(totalSeconds / initialSeconds);
+    }
+  }, 1000);
+}
+
+document.getElementById('startBtn').onclick = startTimer;
+document.getElementById('stopBtn').onclick = () => clearInterval(timerInterval);
+
+// Предпросмотр при изменении значений
+['minutes','seconds','timerColor','fontFamily','fontSize','timerImage'].forEach(id=>{
+  document.getElementById(id).addEventListener('change',()=>drawTimer(1));
+});
+drawTimer(1);
+
+// Кнопка генерации HTML-файла для Genially
+document.getElementById('getHtmlBtn').onclick = () => {
+  const htmlContent = document.documentElement.outerHTML;
+  const blob = new Blob([htmlContent], {type:'text/html'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'genially_timer.html';
+  a.click();
+  URL.revokeObjectURL(url);
+};
+</script>
+
+</body>
+</html>
