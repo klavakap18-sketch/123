@@ -53,13 +53,12 @@ function drawTimer(progress) {
     img.onload = () => {
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       ctx.fillStyle = color;
-      // Прямоугольник опустошается справа налево
-      ctx.fillRect(canvas.width * (1 - progress), 0, canvas.width * progress, canvas.height);
+      ctx.fillRect(canvas.width * progress, 0, canvas.width * (1 - progress), canvas.height);
     };
     img.src = URL.createObjectURL(imgInput);
   } else {
     ctx.fillStyle = color;
-    ctx.fillRect(canvas.width * (1 - progress), 0, canvas.width * progress, canvas.height);
+    ctx.fillRect(canvas.width * progress, 0, canvas.width * (1 - progress), canvas.height);
   }
 
   const minutes = Math.floor(totalSeconds / 60);
@@ -76,7 +75,7 @@ function startTimer() {
 
   function update() {
     const progress = totalSeconds / initialSeconds;
-    drawTimer(progress); // теперь прогресс показывает оставшееся время, опустошение справа налево
+    drawTimer(1 - progress);
     if(totalSeconds <= 0){
       clearTimeout(timerInterval);
       const audioFile = document.getElementById('endAudio').files[0];
@@ -107,7 +106,7 @@ document.getElementById('getHtmlBtn').onclick = () => {
 };
 
 ['minutes','seconds','timerColor','fontFamily','fontSize','timerImage'].forEach(id=>{
-  document.getElementById(id).addEventListener('change',()=>drawTimer(totalSeconds / (parseInt(document.getElementById('minutes').value)*60 + parseInt(document.getElementById('seconds').value))));
+  document.getElementById(id).addEventListener('change',()=>drawTimer(1 - totalSeconds/(parseInt(document.getElementById('minutes').value)*60 + parseInt(document.getElementById('seconds').value))));
 });
 </script>
 
