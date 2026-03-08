@@ -65,24 +65,28 @@ const timerImg = document.getElementById('timer-img');
 let timerInterval;
 let totalTime = 30;
 let timeLeft = 30;
+let alarmAudio = null;
 
+// Форматирование времени
 function formatTime(seconds){
   let m = Math.floor(seconds / 60);
   let s = seconds % 60;
   return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 }
 
+// Обновление таймера
 function updateTimer(){
   timeDisplay.textContent = formatTime(timeLeft);
   progress.style.width = (timeLeft / totalTime * 100) + '%';
   if(timeLeft <= 0){
     clearInterval(timerInterval);
-    if(window.alarmAudio){ window.alarmAudio.play(); }
+    if(alarmAudio) alarmAudio.play();
   }
   timeLeft--;
 }
 
-startBtn.addEventListener('click', ()=>{
+// Старт таймера для предпросмотра
+function startPreviewTimer(){
   clearInterval(timerInterval);
 
   const minutes = parseInt(document.getElementById('minutes').value) || 0;
@@ -97,8 +101,9 @@ startBtn.addEventListener('click', ()=>{
 
   updateTimer();
   timerInterval = setInterval(updateTimer, 1000);
-});
+}
 
+// Обработчики загрузки файлов
 document.getElementById('timerImage').addEventListener('change', function(e){
   const file = e.target.files[0];
   if(file){
@@ -109,10 +114,13 @@ document.getElementById('timerImage').addEventListener('change', function(e){
 document.getElementById('alarmAudio').addEventListener('change', function(e){
   const file = e.target.files[0];
   if(file){
-    window.alarmAudio = new Audio(URL.createObjectURL(file));
+    alarmAudio = new Audio(URL.createObjectURL(file));
   }
 });
 
+startBtn.addEventListener('click', startPreviewTimer);
+
+// Генерация HTML-кода для вставки в Genially
 generateBtn.addEventListener('click', ()=>{
   const minutes = parseInt(document.getElementById('minutes').value) || 0;
   const seconds = parseInt(document.getElementById('seconds').value) || 0;
@@ -122,7 +130,7 @@ generateBtn.addEventListener('click', ()=>{
   const fontSize = document.getElementById('fontSize').value;
 
   let imgTag = timerImg.src ? `<img src="${timerImg.src}" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;opacity:0.3;border-radius:10px;">` : '';
-  let audioTag = window.alarmAudio ? `<audio id="alarm" src="${window.alarmAudio.src}"></audio>` : '';
+  let audioTag = alarmAudio ? `<audio id="alarm" src="${alarmAudio.src}"></audio>` : '';
 
   const code = `
 <iframe srcdoc='
@@ -148,11 +156,11 @@ ${audioTag}
 <script>
 let totalTime=${minutes*60+seconds}, timeLeft=totalTime;
 const progress=document.getElementById("progress"), timeDisplay=document.getElementById("time");
-${window.alarmAudio ? 'const alarm=document.getElementById("alarm");' : ''}
+${alarmAudio ? 'const alarm=document.getElementById("alarm");' : ''}
 function formatTime(s){let m=Math.floor(s/60), sec=s%60;return String(m).padStart(2,"0")+":"+String(sec).padStart(2,"0");}
-function updateTimer(){timeDisplay.textContent=formatTime(timeLeft);progress.style.width=(timeLeft/totalTime*100)+"%";if(timeLeft<=0){clearInterval(timerInterval);${window.alarmAudio ? 'alarm.play();':''}}timeLeft--;}
-let timerInterval=setInterval(updateTimer,1000);
+function updateTimer(){timeDisplay.textContent=formatTime(timeLeft);progress.style.width=(timeLeft/totalTime*100)+"%";if(timeLeft<=0){clearInterval(timerInterval);${alarmAudio ? 'alarm.play();':''}}timeLeft--;}
 updateTimer();
+setInterval(updateTimer,1000);
 </script>
 </body>
 </html>' style="border:none;width:340px;height:170px;background:transparent;"></iframe>
