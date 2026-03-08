@@ -17,8 +17,8 @@ input[type="color"], input[type="number"], select, input[type="file"] { margin-t
 #progress-bar { width: 100%; height: 40px; background: #ddd; border-radius: 5px; overflow: hidden; }
 #progress { height: 100%; width: 100%; background: #4caf50; transition: width 1s linear; }
 #time { font-size: 24px; margin-top: 10px; text-align: center; color: #000; }
-#start-btn, #generate-btn { margin-top: 10px; padding: 5px 10px; font-size: 16px; }
 #timer-img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.3; border-radius: 10px; }
+button { margin-top: 10px; padding: 5px 10px; font-size: 16px; }
 textarea { width: 100%; height: 150px; margin-top: 10px; font-family: monospace; }
 </style>
 </head>
@@ -28,7 +28,6 @@ textarea { width: 100%; height: 150px; margin-top: 10px; font-family: monospace;
 
 <label>Минуты: <input type="number" id="minutes" min="0" value="0"></label>
 <label>Секунды: <input type="number" id="seconds" min="0" max="59" value="30"></label>
-
 <label>Цвет прогресс-бара: <input type="color" id="barColor" value="#4caf50"></label>
 <label>Цвет цифр: <input type="color" id="textColor" value="#000000"></label>
 <label>Шрифт цифр: 
@@ -40,7 +39,6 @@ textarea { width: 100%; height: 150px; margin-top: 10px; font-family: monospace;
 </select>
 </label>
 <label>Размер цифр (px): <input type="number" id="fontSize" value="24"></label>
-
 <label>Загрузить картинку для таймера: <input type="file" id="timerImage" accept="image/*"></label>
 <label>Звуковой сигнал при завершении: <input type="file" id="alarmAudio" accept="audio/*"></label>
 
@@ -58,52 +56,42 @@ textarea { width: 100%; height: 150px; margin-top: 10px; font-family: monospace;
 <script>
 const progress = document.getElementById('progress');
 const timeDisplay = document.getElementById('time');
-const startBtn = document.getElementById('start-btn');
-const generateBtn = document.getElementById('generate-btn');
 const timerImg = document.getElementById('timer-img');
 
 let timerInterval;
-let totalTime = 30;
-let timeLeft = 30;
 let alarmAudio = null;
 
-// Форматирование времени
-function formatTime(seconds){
-  let m = Math.floor(seconds / 60);
-  let s = seconds % 60;
-  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-}
-
-// Обновление таймера
-function updateTimer(){
-  timeDisplay.textContent = formatTime(timeLeft);
-  progress.style.width = (timeLeft / totalTime * 100) + '%';
-  if(timeLeft <= 0){
-    clearInterval(timerInterval);
-    if(alarmAudio) alarmAudio.play();
-  }
-  timeLeft--;
-}
-
-// Старт таймера для предпросмотра
-function startPreviewTimer(){
+// Предпросмотр таймера
+function startPreview(){
   clearInterval(timerInterval);
 
-  const minutes = parseInt(document.getElementById('minutes').value) || 0;
-  const seconds = parseInt(document.getElementById('seconds').value) || 0;
-  totalTime = minutes*60 + seconds;
-  timeLeft = totalTime;
+  const minutes = parseInt(document.getElementById('minutes').value)||0;
+  const seconds = parseInt(document.getElementById('seconds').value)||0;
+  let totalTime = minutes*60 + seconds;
+  let timeLeft = totalTime;
 
   progress.style.background = document.getElementById('barColor').value;
   timeDisplay.style.color = document.getElementById('textColor').value;
   timeDisplay.style.fontFamily = document.getElementById('fontSelect').value;
   timeDisplay.style.fontSize = document.getElementById('fontSize').value + 'px';
 
+  function updateTimer(){
+    timeDisplay.textContent = `${String(Math.floor(timeLeft/60)).padStart(2,'0')}:${String(timeLeft%60).padStart(2,'0')}`;
+    progress.style.width = (timeLeft/totalTime*100) + '%';
+    if(timeLeft<=0){
+      clearInterval(timerInterval);
+      if(alarmAudio) alarmAudio.play();
+    }
+    timeLeft--;
+  }
+
   updateTimer();
-  timerInterval = setInterval(updateTimer, 1000);
+  timerInterval = setInterval(updateTimer,1000);
 }
 
-// Обработчики загрузки файлов
+document.getElementById('start-btn').addEventListener('click', startPreview);
+
+// Загрузка картинки
 document.getElementById('timerImage').addEventListener('change', function(e){
   const file = e.target.files[0];
   if(file){
@@ -111,6 +99,7 @@ document.getElementById('timerImage').addEventListener('change', function(e){
   }
 });
 
+// Загрузка аудио
 document.getElementById('alarmAudio').addEventListener('change', function(e){
   const file = e.target.files[0];
   if(file){
@@ -118,22 +107,19 @@ document.getElementById('alarmAudio').addEventListener('change', function(e){
   }
 });
 
-startBtn.addEventListener('click', startPreviewTimer);
-
-// Генерация HTML-кода для вставки в Genially
-generateBtn.addEventListener('click', ()=>{
-  const minutes = parseInt(document.getElementById('minutes').value) || 0;
-  const seconds = parseInt(document.getElementById('seconds').value) || 0;
+// Генерация HTML кода для iframe
+document.getElementById('generate-btn').addEventListener('click', function(){
+  const minutes = parseInt(document.getElementById('minutes').value)||0;
+  const seconds = parseInt(document.getElementById('seconds').value)||0;
   const barColor = document.getElementById('barColor').value;
   const textColor = document.getElementById('textColor').value;
   const font = document.getElementById('fontSelect').value;
   const fontSize = document.getElementById('fontSize').value;
 
-  let imgTag = timerImg.src ? `<img src="${timerImg.src}" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;opacity:0.3;border-radius:10px;">` : '';
-  let audioTag = alarmAudio ? `<audio id="alarm" src="${alarmAudio.src}"></audio>` : '';
+  const imgTag = timerImg.src ? `<img src="${timerImg.src}" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;opacity:0.3;border-radius:10px;">` : '';
+  const audioTag = alarmAudio ? `<audio id="alarm" src="${alarmAudio.src}"></audio>` : '';
 
-  const code = `
-<iframe srcdoc='
+  const iframeCode = `<iframe srcdoc='
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -155,17 +141,25 @@ ${audioTag}
 </div>
 <script>
 let totalTime=${minutes*60+seconds}, timeLeft=totalTime;
-const progress=document.getElementById("progress"), timeDisplay=document.getElementById("time");
+const progress=document.getElementById("progress");
+const timeDisplay=document.getElementById("time");
 ${alarmAudio ? 'const alarm=document.getElementById("alarm");' : ''}
-function formatTime(s){let m=Math.floor(s/60), sec=s%60;return String(m).padStart(2,"0")+":"+String(sec).padStart(2,"0");}
-function updateTimer(){timeDisplay.textContent=formatTime(timeLeft);progress.style.width=(timeLeft/totalTime*100)+"%";if(timeLeft<=0){clearInterval(timerInterval);${alarmAudio ? 'alarm.play();':''}}timeLeft--;}
+function updateTimer(){
+  timeDisplay.textContent = String(Math.floor(timeLeft/60)).padStart(2,"0")+":"+String(timeLeft%60).padStart(2,"0");
+  progress.style.width = (timeLeft/totalTime*100)+"%";
+  if(timeLeft<=0){
+    clearInterval(timerInterval);
+    ${alarmAudio ? 'alarm.play();':''}
+  }
+  timeLeft--;
+}
 updateTimer();
 setInterval(updateTimer,1000);
 </script>
 </body>
-</html>' style="border:none;width:340px;height:170px;background:transparent;"></iframe>
-  `;
-  document.getElementById('generated-code').value = code;
+</html>' style="border:none;width:340px;height:170px;background:transparent;"></iframe>`;
+
+  document.getElementById('generated-code').value = iframeCode;
 });
 </script>
 
