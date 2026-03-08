@@ -2,111 +2,162 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Обратный таймер для Genially</title>
+<title>Редактор таймера для Genially</title>
 <style>
-  body { background: transparent; font-family: Arial, sans-serif; text-align: center; }
-  #timerContainer { position: relative; width: 300px; height: 100px; margin: 20px auto; }
-  canvas { border-radius: 10px; background-color: rgba(0,0,0,0); }
-  #timeText { margin-top: 10px; font-size: 24px; color: #00ccff; }
-  #controls { margin-top: 15px; }
-  input[type=number], input[type=color], input[type=text], input[type=file] { margin: 5px; }
-  button { margin: 5px; padding: 5px 10px; }
+body { font-family: Arial, sans-serif; margin: 20px; background: #f0f0f0; }
+h2 { margin-bottom: 10px; }
+label { display: block; margin-top: 10px; }
+input[type="color"], input[type="number"], select, input[type="file"] { margin-top: 5px; }
+#preview-container { 
+  margin-top: 20px; padding: 20px; 
+  width: 320px; height: 150px; 
+  border: 2px solid #333; border-radius: 10px; 
+  background: transparent; position: relative; 
+}
+#progress-bar { width: 100%; height: 40px; background: #ddd; border-radius: 5px; overflow: hidden; }
+#progress { height: 100%; width: 100%; background: #4caf50; transition: width 1s linear; }
+#time { font-size: 24px; margin-top: 10px; text-align: center; color: #000; }
+#start-btn, #generate-btn { margin-top: 10px; padding: 5px 10px; font-size: 16px; }
+#timer-img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.3; border-radius: 10px; }
+textarea { width: 100%; height: 150px; margin-top: 10px; font-family: monospace; }
 </style>
 </head>
 <body>
 
-<div id="timerEditor">
-  <div id="settings">
-    <label>Минуты: <input type="number" id="minutes" value="1" min="0"></label>
-    <label>Секунды: <input type="number" id="seconds" value="30" min="0" max="59"></label><br>
-    <label>Цвет таймера: <input type="color" id="timerColor" value="#00ccff"></label>
-    <label>Шрифт цифр: <input type="text" id="fontFamily" value="Arial"></label>
-    <label>Размер шрифта: <input type="number" id="fontSize" value="24"></label><br>
-    <label>Фон таймера (картинка): <input type="file" id="timerImage" accept="image/*"></label>
-    <label>Аудио при завершении: <input type="file" id="endAudio" accept="audio/*"></label>
-  </div>
+<h2>Редактор обратного таймера для Genially</h2>
 
-  <div id="timerContainer">
-    <canvas id="timerCanvas" width="300" height="100"></canvas>
-  </div>
-  <div id="timeText"></div>
+<label>Минуты: <input type="number" id="minutes" min="0" value="0"></label>
+<label>Секунды: <input type="number" id="seconds" min="0" max="59" value="30"></label>
 
-  <div id="controls">
-    <button id="getHtmlBtn">Код HTML для Genially</button>
-  </div>
+<label>Цвет прогресс-бара: <input type="color" id="barColor" value="#4caf50"></label>
+<label>Цвет цифр: <input type="color" id="textColor" value="#000000"></label>
+<label>Шрифт цифр: 
+<select id="fontSelect">
+  <option value="Arial">Arial</option>
+  <option value="Verdana">Verdana</option>
+  <option value="Tahoma">Tahoma</option>
+  <option value="Courier New">Courier New</option>
+</select>
+</label>
+<label>Размер цифр (px): <input type="number" id="fontSize" value="24"></label>
+
+<label>Загрузить картинку для таймера: <input type="file" id="timerImage" accept="image/*"></label>
+<label>Звуковой сигнал при завершении: <input type="file" id="alarmAudio" accept="audio/*"></label>
+
+<button id="start-btn">Предпросмотр</button>
+<button id="generate-btn">Сгенерировать HTML-код</button>
+
+<div id="preview-container">
+  <img id="timer-img" src="" alt="">
+  <div id="progress-bar"><div id="progress"></div></div>
+  <div id="time">00:30</div>
 </div>
 
+<textarea id="generated-code" readonly placeholder="Сюда будет сгенерирован код для вставки в Genially..."></textarea>
+
 <script>
-const canvas = document.getElementById('timerCanvas');
-const ctx = canvas.getContext('2d');
-const timeText = document.getElementById('timeText');
+const progress = document.getElementById('progress');
+const timeDisplay = document.getElementById('time');
+const startBtn = document.getElementById('start-btn');
+const generateBtn = document.getElementById('generate-btn');
+const timerImg = document.getElementById('timer-img');
+
 let timerInterval;
-let totalSeconds = parseInt(document.getElementById('minutes').value)*60 + parseInt(document.getElementById('seconds').value);
+let totalTime = 30;
+let timeLeft = 30;
 
-function drawTimer(progress) {
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  const color = document.getElementById('timerColor').value;
-
-  const imgInput = document.getElementById('timerImage').files[0];
-  if(imgInput){
-    const img = new Image();
-    img.onload = () => {
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = color;
-      ctx.fillRect(canvas.width * progress, 0, canvas.width * (1 - progress), canvas.height);
-    };
-    img.src = URL.createObjectURL(imgInput);
-  } else {
-    ctx.fillStyle = color;
-    ctx.fillRect(canvas.width * progress, 0, canvas.width * (1 - progress), canvas.height);
-  }
-
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  timeText.style.fontFamily = document.getElementById('fontFamily').value;
-  timeText.style.fontSize = document.getElementById('fontSize').value + 'px';
-  timeText.innerText = `${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')}`;
+function formatTime(seconds){
+  let m = Math.floor(seconds / 60);
+  let s = seconds % 60;
+  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 }
 
-function startTimer() {
+function updateTimer(){
+  timeDisplay.textContent = formatTime(timeLeft);
+  progress.style.width = (timeLeft / totalTime * 100) + '%';
+  if(timeLeft <= 0){
+    clearInterval(timerInterval);
+    if(window.alarmAudio){ window.alarmAudio.play(); }
+  }
+  timeLeft--;
+}
+
+startBtn.addEventListener('click', ()=>{
   clearInterval(timerInterval);
-  totalSeconds = parseInt(document.getElementById('minutes').value)*60 + parseInt(document.getElementById('seconds').value);
-  const initialSeconds = totalSeconds;
 
-  function update() {
-    const progress = totalSeconds / initialSeconds;
-    drawTimer(1 - progress);
-    if(totalSeconds <= 0){
-      clearTimeout(timerInterval);
-      const audioFile = document.getElementById('endAudio').files[0];
-      if(audioFile){
-        const audio = new Audio(URL.createObjectURL(audioFile));
-        audio.play();
-      }
-      return;
-    }
-    totalSeconds--;
-    timerInterval = setTimeout(update, 1000);
+  const minutes = parseInt(document.getElementById('minutes').value) || 0;
+  const seconds = parseInt(document.getElementById('seconds').value) || 0;
+  totalTime = minutes*60 + seconds;
+  timeLeft = totalTime;
+
+  progress.style.background = document.getElementById('barColor').value;
+  timeDisplay.style.color = document.getElementById('textColor').value;
+  timeDisplay.style.fontFamily = document.getElementById('fontSelect').value;
+  timeDisplay.style.fontSize = document.getElementById('fontSize').value + 'px';
+
+  updateTimer();
+  timerInterval = setInterval(updateTimer, 1000);
+});
+
+document.getElementById('timerImage').addEventListener('change', function(e){
+  const file = e.target.files[0];
+  if(file){
+    timerImg.src = URL.createObjectURL(file);
   }
+});
 
-  update();
-}
+document.getElementById('alarmAudio').addEventListener('change', function(e){
+  const file = e.target.files[0];
+  if(file){
+    window.alarmAudio = new Audio(URL.createObjectURL(file));
+  }
+});
 
-window.onload = () => startTimer();
+generateBtn.addEventListener('click', ()=>{
+  const minutes = parseInt(document.getElementById('minutes').value) || 0;
+  const seconds = parseInt(document.getElementById('seconds').value) || 0;
+  const barColor = document.getElementById('barColor').value;
+  const textColor = document.getElementById('textColor').value;
+  const font = document.getElementById('fontSelect').value;
+  const fontSize = document.getElementById('fontSize').value;
 
-document.getElementById('getHtmlBtn').onclick = () => {
-  const htmlContent = document.documentElement.outerHTML;
-  const blob = new Blob([htmlContent], {type:'text/html'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'genially_timer.html';
-  a.click();
-  URL.revokeObjectURL(url);
-};
+  let imgTag = timerImg.src ? `<img src="${timerImg.src}" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;opacity:0.3;border-radius:10px;">` : '';
+  let audioTag = window.alarmAudio ? `<audio id="alarm" src="${window.alarmAudio.src}"></audio>` : '';
 
-['minutes','seconds','timerColor','fontFamily','fontSize','timerImage'].forEach(id=>{
-  document.getElementById(id).addEventListener('change',()=>drawTimer(1 - totalSeconds/(parseInt(document.getElementById('minutes').value)*60 + parseInt(document.getElementById('seconds').value))));
+  const code = `
+<iframe srcdoc='
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<style>
+body{margin:0;background:transparent;font-family:${font};}
+#container{width:320px;height:150px;position:relative;}
+#progress-bar{width:100%;height:40px;background:#ddd;border-radius:5px;overflow:hidden;}
+#progress{height:100%;width:100%;background:${barColor};transition:width 1s linear;}
+#time{font-size:${fontSize}px;color:${textColor};text-align:center;margin-top:10px;}
+</style>
+</head>
+<body>
+<div id="container">
+${imgTag}
+<div id="progress-bar"><div id="progress"></div></div>
+<div id="time">${String(minutes).padStart(2,'0')}:${String(seconds).padStart(2,'0')}</div>
+${audioTag}
+</div>
+<script>
+let totalTime=${minutes*60+seconds}, timeLeft=totalTime;
+const progress=document.getElementById("progress"), timeDisplay=document.getElementById("time");
+${window.alarmAudio ? 'const alarm=document.getElementById("alarm");' : ''}
+function formatTime(s){let m=Math.floor(s/60), sec=s%60;return String(m).padStart(2,"0")+":"+String(sec).padStart(2,"0");}
+function updateTimer(){timeDisplay.textContent=formatTime(timeLeft);progress.style.width=(timeLeft/totalTime*100)+"%";if(timeLeft<=0){clearInterval(timerInterval);${window.alarmAudio ? 'alarm.play();':''}}timeLeft--;}
+let timerInterval=setInterval(updateTimer,1000);
+updateTimer();
+</script>
+</body>
+</html>' style="border:none;width:340px;height:170px;background:transparent;"></iframe>
+  `;
+  document.getElementById('generated-code').value = code;
 });
 </script>
 
