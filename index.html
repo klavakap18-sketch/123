@@ -32,7 +32,7 @@
   <div id="timeText"></div>
 
   <div id="controls">
-    <button id="getHtmlBtn">Получить ссылку HTML для Genially</button>
+    <button id="getHtmlBtn">Код HTML для Genially</button>
   </div>
 </div>
 
@@ -47,22 +47,21 @@ function drawTimer(progress) {
   ctx.clearRect(0,0,canvas.width,canvas.height);
   const color = document.getElementById('timerColor').value;
 
-  // Фон из изображения
   const imgInput = document.getElementById('timerImage').files[0];
   if(imgInput){
     const img = new Image();
     img.onload = () => {
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       ctx.fillStyle = color;
-      ctx.fillRect(canvas.width * progress, 0, canvas.width * (1 - progress), canvas.height);
+      // Прямоугольник опустошается справа налево
+      ctx.fillRect(canvas.width * (1 - progress), 0, canvas.width * progress, canvas.height);
     };
     img.src = URL.createObjectURL(imgInput);
   } else {
     ctx.fillStyle = color;
-    ctx.fillRect(canvas.width * progress, 0, canvas.width * (1 - progress), canvas.height);
+    ctx.fillRect(canvas.width * (1 - progress), 0, canvas.width * progress, canvas.height);
   }
 
-  // Текст под таймером
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   timeText.style.fontFamily = document.getElementById('fontFamily').value;
@@ -76,8 +75,8 @@ function startTimer() {
   const initialSeconds = totalSeconds;
 
   function update() {
-    const progress = totalSeconds / initialSeconds; // прогресс для опустошения
-    drawTimer(1 - progress); // прямоугольник опустошается слева направо
+    const progress = totalSeconds / initialSeconds;
+    drawTimer(progress); // теперь прогресс показывает оставшееся время, опустошение справа налево
     if(totalSeconds <= 0){
       clearTimeout(timerInterval);
       const audioFile = document.getElementById('endAudio').files[0];
@@ -94,10 +93,8 @@ function startTimer() {
   update();
 }
 
-// Автозапуск таймера при загрузке
 window.onload = () => startTimer();
 
-// Генерация HTML-файла для Genially
 document.getElementById('getHtmlBtn').onclick = () => {
   const htmlContent = document.documentElement.outerHTML;
   const blob = new Blob([htmlContent], {type:'text/html'});
@@ -109,9 +106,8 @@ document.getElementById('getHtmlBtn').onclick = () => {
   URL.revokeObjectURL(url);
 };
 
-// Предпросмотр при изменении значений
 ['minutes','seconds','timerColor','fontFamily','fontSize','timerImage'].forEach(id=>{
-  document.getElementById(id).addEventListener('change',()=>drawTimer(1 - totalSeconds/(parseInt(document.getElementById('minutes').value)*60 + parseInt(document.getElementById('seconds').value))));
+  document.getElementById(id).addEventListener('change',()=>drawTimer(totalSeconds / (parseInt(document.getElementById('minutes').value)*60 + parseInt(document.getElementById('seconds').value))));
 });
 </script>
 
